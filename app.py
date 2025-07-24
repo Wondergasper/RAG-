@@ -8,17 +8,29 @@ import json
 import os
 import google.generativeai as genai
 
+# Initialize Flask app
 app = Flask(__name__)
-CORS(app, resources={r"/rag": {"origins": ["http://localhost:3000", "http://your-ec2-public-ip"]}})
+
+# Configure CORS
+# Allow specific origins for local and hosted environments
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+CORS(app, resources={r"/rag": {"origins": ALLOWED_ORIGINS}})
 
 # Load RAG components
-model = SentenceTransformer('all-MiniLM-L6-v2')
-index = faiss.read_index('corpus_index.faiss')
-with open('corpus_data.json', 'r') as f:
-    corpus = json.load(f)
+try:
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    index = faiss.read_index('corpus_index.faiss')
+    with open('corpus_data.json', 'r') as f:
+        corpus = json.load(f)
+except FileNotFoundError as e:
+    print(f"Error: {e}. Ensure corpus_index.faiss and corpus_data.json are in the same directory as app.py.")
+    raise
 
 # Configure Gemini API
-genai.configure(api_key=os.getenv('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY')) # Replace or use env var
+GEMINI_API_KEY = os.getenv('AIzaSyDZlTkys2Kpfah0Ki8N1CgAt-aqwierAPc')
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable not set.")
+genai.configure(api_key=GEMINI_API_KEY)
 
 @app.route('/rag', methods=['POST'])
 def rag():
@@ -51,4 +63,6 @@ def rag():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run()
+    # Get port from environment variable (for hosted platforms) or default to 5000 (local)
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=os.getenv('FLASK_ENV', 'development') == 'development')
