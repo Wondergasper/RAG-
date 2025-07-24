@@ -1,7 +1,7 @@
 FROM continuumio/miniconda3
 
 # Create and configure a Conda environment with Python 3.7
-RUN conda create -n rag-env python=3.7
+RUN conda create -n rag-env python=3.9
 SHELL ["conda", "run", "-n", "rag-env", "/bin/bash", "-c"]
 
 # Install faiss-cpu via Conda from the pytorch channel
